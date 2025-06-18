@@ -1,3 +1,4 @@
+import { getWeatherDescription, getWeatherIcon } from "@/lib/weather-utils";
 import type { LocationData } from "@/types/location";
 import type { WeatherData } from "@/types/weather";
 
@@ -39,7 +40,6 @@ function WeatherDemo() {
 		enabled: typeof latitude === "number" && typeof longitude === "number",
 	});
 
-	// Reverse geocoding query to get location name
 	const { data: locationData } = useQuery<LocationData, Error>({
 		queryKey: ["location", latitude, longitude],
 		queryFn: async () => {
@@ -54,7 +54,6 @@ function WeatherDemo() {
 		enabled: typeof latitude === "number" && typeof longitude === "number",
 	});
 
-	// Get current location using browser geolocation API
 	const getCurrentLocation = () => {
 		if (!navigator.geolocation) {
 			alert("Geolocation is not supported by this browser");
@@ -80,55 +79,75 @@ function WeatherDemo() {
 		);
 	};
 
+	const currentDate = new Date();
+
 	return (
-		<div className="p-4">
-			<div className="mb-4">
+		<div className="max-w-4xl mx-auto bg-gradient-to-br from-blue-500 to-purple-600 text-white min-h-screen">
+			<div className="p-6 flex justify-between items-center">
+				<div>
+					<h1 className="text-sm opacity-80">Results for</h1>
+					<h2 className="text-xl font-medium">
+						{locationData?.city || locationData?.locality || "Current Location"}
+						{locationData?.principalSubdivision &&
+							`, ${locationData.principalSubdivision}`}
+					</h2>
+				</div>
 				<button
 					type="button"
 					onClick={getCurrentLocation}
 					disabled={isGettingLocation}
-					className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+					className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
 				>
-					{isGettingLocation ? "Getting Location..." : "Use Current Location"}
+					<span className="text-xs">📍</span>
+					{isGettingLocation ? "Getting Location..." : "Use precise location"}
 				</button>
 			</div>
 
-			<h1 className="text-2xl mb-4">
-				Current Weather
-				{locationData?.city || locationData?.locality
-					? ` in ${locationData.city || locationData.locality}, ${locationData.countryName}`
-					: ""}
-			</h1>
-			<p className="text-gray-600 mb-4">
-				Coordinates: {latitude?.toFixed(2)}°, {longitude?.toFixed(2)}°
-			</p>
 			{weatherData && (
-				<div>
-					<p>
-						Temperature: {weatherData.current.temperature_2m}
-						{weatherData.current_units.temperature_2m}
-					</p>
-					<p>
-						Wind Speed: {weatherData.current.wind_speed_10m}
-						{weatherData.current_units.wind_speed_10m}
-					</p>
-					<p>Timezone: {weatherData.timezone}</p>
-					<p>Elevation: {weatherData.elevation}m</p>
-					<p>
-						Fetched Time: {new Date(weatherData.current.time).toLocaleString()}
-					</p>
-					<h2 className="text-xl mt-4 mb-2">Hourly Forecast (next 3 hours)</h2>
-					<ul>
-						{weatherData.hourly.time.slice(0, 3).map((time, index) => (
-							<li key={time}>
-								{new Date(time).toLocaleTimeString()}:{" "}
-								{weatherData.hourly.temperature_2m[index]}
-								{weatherData.hourly_units.temperature_2m},{" "}
-								{weatherData.hourly.wind_speed_10m[index]}
-								{weatherData.hourly_units.wind_speed_10m}
-							</li>
-						))}
-					</ul>
+				<div className="px-6">
+					<div className="flex items-center justify-between mb-8">
+						<div className="flex items-center gap-6">
+							<div className="text-8xl">
+								{getWeatherIcon(
+									weatherData.current.weather_code || 0,
+									weatherData.current.is_day === 1,
+								)}
+							</div>
+							<div>
+								<div className="text-8xl font-light">
+									{Math.round(weatherData.current.temperature_2m)}
+									<span className="text-4xl">
+										°{weatherData.current_units.temperature_2m.replace("°", "")}
+									</span>
+								</div>
+								<div className="text-sm opacity-80 mt-2">
+									<div>
+										Precipitation: {weatherData.current.precipitation || 0}%
+									</div>
+									<div>
+										Humidity: {weatherData.current.relative_humidity_2m || 0}%
+									</div>
+									<div>
+										Wind: {weatherData.current.wind_speed_10m}{" "}
+										{weatherData.current_units.wind_speed_10m}
+									</div>
+								</div>
+							</div>
+						</div>
+						<div className="text-right">
+							<div className="text-3xl font-light">Weather</div>
+							<div className="text-sm opacity-80">
+								{currentDate.toLocaleDateString([], {
+									weekday: "long",
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</div>
+							<div className="text-sm opacity-80">
+								{getWeatherDescription(weatherData.current.weather_code || 0)}
+							</div>
+						</div>
+					</div>
 				</div>
 			)}
 		</div>
