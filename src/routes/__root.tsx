@@ -2,7 +2,7 @@ import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { NuqsAdapter } from "nuqs/adapters/react";
 
-import { Header } from "../components/Header";
+import { Header } from "../components/header";
 
 import TanstackQueryLayout from "../integrations/tanstack-query/layout";
 
