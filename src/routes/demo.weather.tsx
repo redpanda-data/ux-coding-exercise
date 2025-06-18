@@ -1,11 +1,12 @@
 import { getWeatherDescription, getWeatherIcon } from "@/lib/weather-utils";
-import type { LocationData } from "@/types/location";
+import type { City, CityData } from "@/types/city";
+import type { LocationData } from "@/types/geolocation";
 import type { WeatherData } from "@/types/weather";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { parseAsFloat, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/demo/weather")({
 	component: WeatherDemo,
@@ -23,6 +24,10 @@ function WeatherDemo() {
 	);
 
 	const [isGettingLocation, setIsGettingLocation] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [searchResults, setSearchResults] = useState<City[]>([]);
+	const [showSearchResults, setShowSearchResults] = useState(false);
+	const [citySelected, setCitySelected] = useState(false);
 
 	const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,relative_humidity_2m,apparent_temperature,is_day,weather_code,precipitation,cloud_cover,pressure_msl,visibility&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,apparent_temperature,precipitation_probability,precipitation,weather_code,cloud_cover,visibility,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_hours,precipitation_probability_max&timezone=auto`;
 
@@ -79,28 +84,141 @@ function WeatherDemo() {
 		);
 	};
 
+	const searchMutation = useMutation({
+		mutationFn: async (query: string): Promise<CityData> => {
+			const response = await fetch(
+				`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`,
+			);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			return response.json();
+		},
+		onSuccess: (data) => {
+			setSearchResults(data.results || []);
+			setShowSearchResults(true);
+		},
+		onError: (error) => {
+			console.error("Search error:", error);
+			setSearchResults([]);
+			setShowSearchResults(false);
+		},
+	});
+
+	// Handle search input change
+	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		setSearchQuery(value);
+		// Reset city selected flag when user starts typing again
+		setCitySelected(false);
+	};
+
+	// Handle search button click
+	const handleSearch = () => {
+		if (searchQuery && searchQuery.length >= 2) {
+			searchMutation.mutate(searchQuery);
+		}
+	};
+
+	// Clear search results when user starts typing
+	// biome-ignore lint/correctness/useExhaustiveDependencies: searchQuery is not needed in dependencies
+	useEffect(() => {
+		if (!citySelected) {
+			setSearchResults([]);
+			setShowSearchResults(false);
+		}
+	}, [searchQuery, citySelected]);
+
+	// Handle selecting a search result
+	const handleCitySelect = (city: City) => {
+		setLatitude(city.latitude);
+		setLongitude(city.longitude);
+		setSearchQuery(`${city.name}, ${city.country}`);
+		setShowSearchResults(false);
+		setCitySelected(true); // Mark that a city was selected
+	};
+
 	const currentDate = new Date();
 
 	return (
 		<div className="max-w-4xl mx-auto bg-gradient-to-br from-blue-500 to-purple-600 text-white min-h-screen">
-			<div className="p-6 flex justify-between items-center">
-				<div>
-					<h1 className="text-sm opacity-80">Results for</h1>
-					<h2 className="text-xl font-medium">
-						{locationData?.city || locationData?.locality || "Current Location"}
-						{locationData?.principalSubdivision &&
-							`, ${locationData.principalSubdivision}`}
-					</h2>
+			{/* Header with Search */}
+			<div className="p-6">
+				<div className="flex justify-between items-center mb-4">
+					<div>
+						<h1 className="text-sm opacity-80">Results for</h1>
+						<h2 className="text-xl font-medium">
+							{locationData?.city ||
+								locationData?.locality ||
+								"Current Location"}
+							{locationData?.principalSubdivision &&
+								`, ${locationData.principalSubdivision}`}
+						</h2>
+					</div>
+					<button
+						type="button"
+						onClick={getCurrentLocation}
+						disabled={isGettingLocation}
+						className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+					>
+						<span className="text-xs">📍</span>
+						{isGettingLocation ? "Getting Location..." : "Use current location"}
+					</button>
 				</div>
-				<button
-					type="button"
-					onClick={getCurrentLocation}
-					disabled={isGettingLocation}
-					className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
-				>
-					<span className="text-xs">📍</span>
-					{isGettingLocation ? "Getting Location..." : "Use precise location"}
-				</button>
+
+				<div className="relative max-w-lg search-container">
+					<div className="flex gap-2">
+						<div className="relative flex-1">
+							<input
+								type="text"
+								placeholder="Search for a city..."
+								value={searchQuery}
+								onChange={handleSearchChange}
+								onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+								className="w-full px-4 py-3 pl-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent"
+							/>
+							<div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+								<span className="text-white/70">🔍</span>
+							</div>
+						</div>
+						<button
+							type="button"
+							onClick={handleSearch}
+							disabled={
+								searchMutation.isPending ||
+								!searchQuery ||
+								searchQuery.length < 2
+							}
+							className="px-6 py-3 bg-white/30 hover:bg-white/40 disabled:bg-white/10 disabled:opacity-50 rounded-full text-white font-medium transition-colors flex items-center gap-2"
+						>
+							{searchMutation.isPending ? (
+								<div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+							) : (
+								"Search"
+							)}
+						</button>
+					</div>
+
+					{showSearchResults && searchResults.length > 0 && (
+						<div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-white/30 overflow-hidden z-10">
+							{searchResults.map((city, index) => (
+								<button
+									key={`${city.id}-${index}`}
+									type="button"
+									onClick={() => handleCitySelect(city)}
+									className="w-full px-4 py-3 text-left hover:bg-white/20 transition-colors text-gray-800 border-b border-gray-200 last:border-b-0"
+								>
+									<div className="font-medium">{city.name}</div>
+									<div className="text-sm text-gray-600">
+										{city.admin1 && `${city.admin1}, `}
+										{city.country}
+										{city.admin2 && ` (${city.admin2})`}
+									</div>
+								</button>
+							))}
+						</div>
+					)}
+				</div>
 			</div>
 
 			{weatherData && (
