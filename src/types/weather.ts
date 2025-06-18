@@ -66,7 +66,7 @@ interface DailyWeather {
 	precipitation_probability_max: number[];
 }
 
-interface WeatherData {
+export interface WeatherData {
 	latitude: number;
 	longitude: number;
 	generationtime_ms: number;
