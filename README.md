@@ -2,16 +2,11 @@ Welcome to your new TanStack app!
 
 # Getting Started
 
-You need bun to install package managers, you can get it by running
-```bash
-curl -fsSL https://bun.sh/install | bash
-```
-
 To run this application:
 
 ```bash
-bun install
-bun start  
+npm i
+npm run start  
 ```
 
 # Building For Production
@@ -19,7 +14,7 @@ bun start
 To build this application for production:
 
 ```bash
-bun build
+npm run build
 ```
 
 ## Testing
@@ -27,7 +22,7 @@ bun build
 This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
 
 ```bash
-bun test
+npm run test
 ```
 
 ## Styling
@@ -41,9 +36,9 @@ This project uses [Biome](https://biomejs.dev/) for linting and formatting. The 
 
 
 ```bash
-bun lint
-bun format
-bun check
+npm run lint
+npm run format
+npm run check
 ```
 
 
@@ -52,7 +47,7 @@ bun check
 Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
 
 ```bash
-pnpx shadcn@latest add button
+npx shadcn@latest add button
 ```
 
 
@@ -159,7 +154,7 @@ React-Query is an excellent addition or alternative to route loading and integra
 First add your dependencies:
 
 ```bash
-bun add @tanstack/react-query @tanstack/react-query-devtools
+npm i -D @tanstack/react-query @tanstack/react-query-devtools
 ```
 
 Next we'll need to create a query client and provider. We recommend putting those in `main.tsx`.
@@ -240,7 +235,7 @@ Another common requirement for React applications is state management. There are
 First you need to add TanStack Store as a dependency:
 
 ```bash
-bun add @tanstack/store
+npm i --save @tanstack/store
 ```
 
 Now let's create a simple counter in the `src/App.tsx` file as a demonstration.

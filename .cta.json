@@ -4,7 +4,7 @@
   "projectName": "coding-exercise",
   "mode": "file-router",
   "tailwind": true,
-  "packageManager": "bun",
+  "packageManager": "npm",
   "toolchain": "biome",
   "variableValues": {},
   "git": true,
